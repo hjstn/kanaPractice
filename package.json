@@ -1,0 +1,11 @@
+{
+  "name": "kanapractice",
+  "version": "1.0.0",
+  "description": "Practice your Kana!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Justin Hu",
+  "license": "ISC"
+}
