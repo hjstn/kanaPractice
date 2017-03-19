@@ -74,7 +74,7 @@ do {
         practiceLetter = practiceColumn[practiceColumnKeys[letter]],
         practiceSound = removeSound(practiceColumns[column] + practiceColumnKeys[letter]);
 
-    input = readlineSync.question(`(${total + 1}) ${practiceLetter}: `);
+    input = readlineSync.question(`(${total + 1}) ${practiceLetter}: `).toLowerCase().trim();
 
     if(input === "done") {
         const timeDate = new Date(time);
