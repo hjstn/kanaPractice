@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+/* eslint-disable no-octal-escape */
+
 
 const
     readlineSync = require("readline-sync"),
@@ -39,10 +41,11 @@ const words = {
             z: { a: "ザ", i: "ジ", u: "ズ", e: "ゼ", o: "ゾ" },
             d: { a: "ダ", i: "ヂ", u: "ヅ", e: "デ", o: "ド" },
             b: { a: "バ", i: "ビ", u: "ブ", e: "ベ", o: "ボ" },
-            p: { a: "パ", i: "ピ", u: "プ", e: "ペ", o: "ポ" },
+            p: { a: "パ", i: "ピ", u: "プ", e: "ペ", o: "ポ" }
         }
     },
     alt: {
+        n: "nn",
         si: "shi",
         ti: "chi",
         tu: "tsu",
@@ -60,18 +63,18 @@ const
 
 let correct = 0, incorrect = {}, time = 0, total = 0, input;
 
-do {
+for(;;) {
     console.log("\033c");
 
     const
-        startTime = new Date().getTime();
+        startTime = new Date().getTime(),
 
         column = randomRange(practiceRange - 1),
         practiceColumn = words.kana[practiceKana][practiceColumns[column]],
         practiceColumnKeys = Object.keys(practiceColumn),
 
         letter = randomRange(practiceColumnKeys.length - 1),
-        practiceLetter = practiceColumn[practiceColumnKeys[letter]],
+        practiceLetter = Buffer.from(practiceColumn[practiceColumnKeys[letter]]).toString("utf8"),
         practiceSound = removeSound(practiceColumns[column] + practiceColumnKeys[letter]);
 
     input = readlineSync.question(`(${total + 1}) ${practiceLetter}: `).toLowerCase().trim();
@@ -94,9 +97,11 @@ do {
                 });
 
                 return `${v} (${allSound(sound)}): ${incorrect[v]}`;
-            }).join("\n")}`);
+            })
+            .join("\n")}
+            `);
         return;
-    };
+    }
 
     total++;
 
@@ -110,7 +115,7 @@ do {
     time += new Date().getTime() - startTime;
 
     readlineSync.question();
-} while(true);
+}
 
 function allSound(sound) {
     return sound + (words.alt[sound] ? "/" + words.alt[sound] : "");
