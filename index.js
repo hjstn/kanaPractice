@@ -68,61 +68,67 @@ const words = {
 const
     practiceKana = readlineSync.question(`Kana (${Object.keys(words.kana).join(", ")}): `),
     practiceRange = readlineSync.question(`Number of rows (${Object.keys(words.kana[practiceKana]).map((column, index) => `${index + 1}: ${column}`).join(", ")}): `),
+    repeatTimes = readlineSync.question("Times to repeat: "),
     showMistakes = readlineSync.question("Show mistakes? (true, false): ") === "true",
     lenientSpelling = readlineSync.question("Lenient spelling? (true, false): ") === "true",
-    practiceColumns = Object.keys(words.kana[practiceKana]).splice(0, practiceRange);
+    practiceKanaObject = words.kana[practiceKana],
+    practiceColumns = Object.keys(practiceKanaObject).splice(0, practiceRange),
+    remainingColumns = {};
+
+practiceColumns.forEach(column => {
+    remainingColumns[column] = {};
+    Object.keys(practiceKanaObject[column]).forEach(letter => {
+        console.log(letter);
+        remainingColumns[column][letter] = Number(repeatTimes);
+    });
+});
 
 let correct = 0, incorrect = {}, time = 0, total = 0, input;
 
 for(;;) {
     console.log("\033c");
 
+    if(Object.keys(remainingColumns).length < 1) {
+        completedInfo();
+        return;
+    }
+
     const
         startTime = new Date().getTime(),
 
-        column = randomRange(practiceRange - 1),
-        practiceColumn = words.kana[practiceKana][practiceColumns[column]],
-        practiceColumnKeys = Object.keys(practiceColumn),
+        column = randomRange(Object.keys(remainingColumns).length - 1),
+        practiceColumnTitle = Object.keys(remainingColumns)[column],
+        practiceColumn = words.kana[practiceKana][practiceColumnTitle],
+        practiceColumnKeys = Object.keys(remainingColumns[practiceColumnTitle]),
 
         letter = randomRange(practiceColumnKeys.length - 1),
-        practiceLetter = practiceColumn[practiceColumnKeys[letter]],
+        practiceLetterTitle = practiceColumnKeys[letter],
+        practiceLetter = practiceColumn[practiceLetterTitle],
         practiceSound = removeSound(practiceColumns[column] + practiceColumnKeys[letter]);
 
-    let stopTime;
+    if(remainingColumns[practiceColumnTitle]) {
+        const remainingColumn = remainingColumns[practiceColumnTitle];
+
+        if(remainingColumn[practiceLetterTitle] < 2) {
+            delete remainingColumn[practiceLetterTitle];
+            if(Object.keys(remainingColumn).length < 2) {
+                delete remainingColumns[practiceColumnTitle];
+            }
+        } else if(remainingColumn[practiceLetterTitle]) {
+            remainingColumn[practiceLetterTitle]--;
+        }
+    }
 
     input = readlineSync.question(`(${total + 1}) ${practiceLetter}: `).toLowerCase().trim();
 
     if(input === "done") {
-        const timeDate = new Date(time);
-        console.log(`You got ${correct} out of ${total} correct in ${moment.utc(time).format("mm:ss")}!`);
-        console.log(`Your average time for each question is ${moment.utc(time / total).format("mm:ss.SSSS")}.`);
-        if(correct < total) {
-            const mistakes = Object.keys(incorrect).sort((a, b) => incorrect[b] - incorrect[a]).map(letter => {
-                let sound = "";
-                practiceColumns.map((column) => {
-                    const
-                        thisColumn = words.kana[practiceKana][column],
-                        row = Object.keys(thisColumn).find((row) => {
-                            return thisColumn[row] === letter;
-                        });
-                    if(row) sound = removeSound(column + row);
-                    return column;
-                });
-
-                const
-                    incorrectLetter = incorrect[letter],
-                    incorrectInputs = Object.keys(incorrect[letter]).map(incorrectInput => `${incorrectInput} (${incorrectLetter[incorrectInput]})`);
-
-                return `${letter} (${allSound(sound)}): ${incorrectInputs.join(", ")}`;
-            })
-            .join("\n");
-
-            console.log(`You made mistakes in:\n${mistakes}`);
-        }
+        completedInfo();
         return;
     }
 
     total++;
+
+    let stopTime = new Date().getTime();
 
     const
         correctTitle = (!words.alt[practiceSound] || lenientSpelling) && input === practiceSound,
@@ -136,14 +142,40 @@ for(;;) {
 
         if(showMistakes) {
             console.log(`Wrong (${allSound(practiceSound)})`);
-            stopTime = new Date().getTime();
             readlineSync.question();
-        } else {
-            stopTime = new Date().getTime();
         }
     }
 
     time += stopTime - startTime;
+}
+
+function completedInfo() {
+    const timeDate = new Date(time);
+    console.log(`You got ${correct} out of ${total} correct in ${moment.utc(time).format("mm:ss")}!`);
+    console.log(`Your average time for each question is ${moment.utc(time / total).format("mm:ss.SSSS")}.`);
+    if(correct < total) {
+        const mistakes = Object.keys(incorrect).sort((a, b) => incorrect[b] - incorrect[a]).map(letter => {
+            let sound = "";
+            practiceColumns.map((column) => {
+                const
+                    thisColumn = words.kana[practiceKana][column],
+                    row = Object.keys(thisColumn).find((row) => {
+                        return thisColumn[row] === letter;
+                    });
+                if(row) sound = removeSound(column + row);
+                return column;
+            });
+
+            const
+                incorrectLetter = incorrect[letter],
+                incorrectInputs = Object.keys(incorrect[letter]).map(incorrectInput => `${incorrectInput} (${incorrectLetter[incorrectInput]})`);
+
+            return `${letter} (${allSound(sound)}): ${incorrectInputs.join(", ")}`;
+        })
+        .join("\n");
+
+        console.log(`You made mistakes in:\n${mistakes}`);
+    }
 }
 
 function allSound(sound) {
