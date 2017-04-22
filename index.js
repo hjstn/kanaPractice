@@ -59,6 +59,7 @@ const words = {
 const
     practiceKana = readlineSync.question(`Kana (${Object.keys(words.kana).join(", ")}): `),
     practiceRange = readlineSync.question(`Number of rows (${Object.keys(words.kana[practiceKana]).map((column, index) => `${index + 1}: ${column}`).join(", ")}): `),
+    showMistakes = readlineSync.question("Show mistakes? (true, false): ") === "true",
     practiceColumns = Object.keys(words.kana[practiceKana]).splice(0, practiceRange);
 
 let correct = 0, incorrect = {}, time = 0, total = 0, input;
@@ -74,7 +75,7 @@ for(;;) {
         practiceColumnKeys = Object.keys(practiceColumn),
 
         letter = randomRange(practiceColumnKeys.length - 1),
-        practiceLetter = Buffer.from(practiceColumn[practiceColumnKeys[letter]]).toString("utf8"),
+        practiceLetter = practiceColumn[practiceColumnKeys[letter]],
         practiceSound = removeSound(practiceColumns[column] + practiceColumnKeys[letter]);
 
     input = readlineSync.question(`(${total + 1}) ${practiceLetter}: `).toLowerCase().trim();
@@ -83,23 +84,29 @@ for(;;) {
         const timeDate = new Date(time);
         console.log(`You got ${correct} out of ${total} correct in ${moment.utc(time).format("mm:ss")}!`);
         console.log(`Your average time for each question is ${moment.utc(time / total).format("mm:ss.SSSS")}.`);
-        if(correct < total)
-            console.log(`You made mistakes in:\n${Object.keys(incorrect).sort((a, b) => incorrect[b] - incorrect[a]).map(v => {
+        if(correct < total) {
+            const mistakes = Object.keys(incorrect).sort((a, b) => incorrect[b] - incorrect[a]).map(letter => {
                 let sound = "";
                 practiceColumns.map((column) => {
                     const
                         thisColumn = words.kana[practiceKana][column],
                         row = Object.keys(thisColumn).find((row) => {
-                            return thisColumn[row] === v;
+                            return thisColumn[row] === letter;
                         });
                     if(row) sound = removeSound(column + row);
                     return column;
                 });
 
-                return `${v} (${allSound(sound)}): ${incorrect[v]}`;
+                const
+                    incorrectLetter = incorrect[letter],
+                    incorrectInputs = Object.keys(incorrect[letter]).map(incorrectInput => `${incorrectInput} (${incorrectLetter[incorrectInput]})`);
+
+                return `${letter} (${allSound(sound)}): ${incorrectInputs.join(", ")}`;
             })
-            .join("\n")}
-            `);
+            .join("\n");
+
+            console.log(`You made mistakes in:\n${mistakes}`);
+        }
         return;
     }
 
@@ -107,14 +114,17 @@ for(;;) {
 
     if(input === practiceSound || input === words.alt[practiceSound]) correct++;
     else {
-        console.log(`Wrong (${allSound(practiceSound)})`);
-        if(!incorrect[practiceLetter]) incorrect[practiceLetter] = 0;
-        incorrect[practiceLetter]++;
+        if(!incorrect[practiceLetter]) incorrect[practiceLetter] = {};
+        if(!incorrect[practiceLetter][input]) incorrect[practiceLetter][input] = 0;
+        incorrect[practiceLetter][input]++;
+
+        if(showMistakes) {
+            console.log(`Wrong (${allSound(practiceSound)})`);
+            readlineSync.question();
+        }
     }
 
     time += new Date().getTime() - startTime;
-
-    readlineSync.question();
 }
 
 function allSound(sound) {
