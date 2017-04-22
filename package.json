@@ -7,5 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Justin Hu",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "moment": "^2.18.1",
+    "readline-sync": "^1.4.7"
+  }
 }
